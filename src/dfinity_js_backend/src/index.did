@@ -1,0 +1,17 @@
+service: () -> {
+    addDataItem: (record {attachmentURL:text; status:text; title:text; quality:text; description:text; seller:text; rating:nat64; price:nat64; dataFormat:text}) -> (variant {Ok:record {id:text; attachmentURL:text; status:text; title:text; quality:text; description:text; seller:text; rating:nat64; price:nat64; dataFormat:text}; Err:variant {PaymentFailed:text; InvalidPayload:text; NotFound:text; PaymentCompleted:text}});
+    addPurchasedItem: (text, text) -> (variant {Ok:text; Err:variant {PaymentFailed:text; InvalidPayload:text; NotFound:text; PaymentCompleted:text}});
+    addPurchaser: (record {name:text; message:text; price:nat64}) -> (variant {Ok:record {id:text; name:text; purchasedItem:vec text; message:text; price:nat64}; Err:variant {PaymentFailed:text; InvalidPayload:text; NotFound:text; PaymentCompleted:text}});
+    deleteDataItem: (text) -> (variant {Ok:text; Err:variant {PaymentFailed:text; InvalidPayload:text; NotFound:text; PaymentCompleted:text}});
+    deletePurchaser: (text) -> (variant {Ok:text; Err:variant {PaymentFailed:text; InvalidPayload:text; NotFound:text; PaymentCompleted:text}});
+    filterDataItem: (text) -> (vec record {id:text; attachmentURL:text; status:text; title:text; quality:text; description:text; seller:text; rating:nat64; price:nat64; dataFormat:text}) query;
+    getDataItem: (text) -> (variant {Ok:record {id:text; attachmentURL:text; status:text; title:text; quality:text; description:text; seller:text; rating:nat64; price:nat64; dataFormat:text}; Err:text}) query;
+    getDataItems: () -> (vec record {id:text; attachmentURL:text; status:text; title:text; quality:text; description:text; seller:text; rating:nat64; price:nat64; dataFormat:text}) query;
+    getInitialDataItem: () -> (vec record {id:text; attachmentURL:text; status:text; title:text; quality:text; description:text; seller:text; rating:nat64; price:nat64; dataFormat:text}) query;
+    getMoreDataItems: (nat64, nat64) -> (vec record {id:text; attachmentURL:text; status:text; title:text; quality:text; description:text; seller:text; rating:nat64; price:nat64; dataFormat:text}) query;
+    getPurchaser: (text) -> (variant {Ok:record {id:text; name:text; purchasedItem:vec text; message:text; price:nat64}; Err:text}) query;
+    getPurchasers: () -> (vec record {id:text; name:text; purchasedItem:vec text; message:text; price:nat64}) query;
+    searchDataItem: (text) -> (vec record {id:text; attachmentURL:text; status:text; title:text; quality:text; description:text; seller:text; rating:nat64; price:nat64; dataFormat:text}) query;
+    updateDataItem: (text, record {attachmentURL:text; status:text; title:text; quality:text; description:text; seller:text; rating:nat64; price:nat64; dataFormat:text}) -> (variant {Ok:record {id:text; attachmentURL:text; status:text; title:text; quality:text; description:text; seller:text; rating:nat64; price:nat64; dataFormat:text}; Err:variant {PaymentFailed:text; InvalidPayload:text; NotFound:text; PaymentCompleted:text}});
+    updatePurchaser: (text, record {name:text; message:text; price:nat64}) -> (variant {Ok:record {id:text; name:text; purchasedItem:vec text; message:text; price:nat64}; Err:variant {PaymentFailed:text; InvalidPayload:text; NotFound:text; PaymentCompleted:text}});
+}
