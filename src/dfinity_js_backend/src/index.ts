@@ -1,14 +1,8 @@
-import { query, update, text, Record, StableBTreeMap, Variant, Vec, None, Some, Ok, Err, ic, Principal, Opt, nat64, Duration, Result, bool, Canister } from "azle";
-import {
-    Ledger, binaryAddressFromAddress, binaryAddressFromPrincipal, hexAddressFromPrincipal
-} from "azle/canisters/ledger";
-import { hashCode } from "hashcode";
+import { query, update, text, Record, StableBTreeMap, Vec, Result, Principal, Canister, nat64 } from "azle";
+import { Ledger } from "azle/canisters/ledger";
 import { v4 as uuidv4 } from "uuid";
 
-/**
- * This type represents a product that can be listed on a marketplace.
- * It contains basic properties that are needed to define a product.
- */
+// Define record types
 const DataItem = Record({
     id: text,
     title: text,
@@ -17,25 +11,24 @@ const DataItem = Record({
     seller: text,
     attachmentURL: text,
     dataFormat: text,
-    status:text,
-    quality:text,
+    status: text,
+    quality: text,
     rating: nat64
 });
 
 const Purchaser = Record({
     id: text,
-    name:text,
-    price:nat64,
-    message:text,
-    purchasedItem:Vec(text)
+    name: text,
+    price: nat64,
+    message: text,
+    purchasedItem: Vec(text)
 });
 
 const PurchaserPayload = Record({
-    name:text,
-    price:nat64,
-    message:text,
+    name: text,
+    price: nat64,
+    message: text,
 });
-
 
 const DataItemPayload = Record({
     title: text,
@@ -44,12 +37,13 @@ const DataItemPayload = Record({
     seller: text,
     attachmentURL: text,
     dataFormat: text,
-    status:text,
-    quality:text,
+    status: text,
+    quality: text,
     rating: nat64
 });
 
-const Message = Variant({
+// Define message variants
+const Message = Record({
     NotFound: text,
     InvalidPayload: text,
     PaymentFailed: text,
@@ -73,169 +67,110 @@ const Message = Variant({
  * 3) 1024 - it's a max size of the value in bytes. 
  * 2 and 3 are not being used directly in the constructor but the Azle compiler utilizes these values during compile time
  */
+
+// Define storage data structures
 const DataItemsStorage = StableBTreeMap(0, text, DataItem);
-const purchasersStorage = StableBTreeMap(1, text , Purchaser)
+const purchasersStorage = StableBTreeMap(1, text , Purchaser);
 
-
-
-/* 
-    initialization of the Ledger canister. The principal text value is hardcoded because 
-    we set it in the `dfx.json`
-*/
-const icpCanister = Ledger(Principal.fromText("ryjl3-tyaaa-aaaaa-aaaba-cai"));
+// Initialize Ledger canister
+const ledgerCanister = Ledger(Principal.fromText("ryjl3-tyaaa-aaaaa-aaaba-cai"));
 
 export default Canister({
 
-    getDataItems : query([], Vec(DataItem),  () => {
-        return  DataItemsStorage.values();
-    }
-    ),
+    getDataItems: query([], Vec(DataItem), () => DataItemsStorage.values()),
 
-    getPurchasers : query([], Vec(Purchaser),  () => {
-        return  purchasersStorage.values();
-    }
-    ),
+    getPurchasers: query([], Vec(Purchaser), () => purchasersStorage.values()),
 
     getDataItem: query([text], Result(DataItem, text), (id) => {
         const dataOpt = DataItemsStorage.get(id);
-        if ("None" in dataOpt) {
-            return Err("Data Item not found");
-        }
-        return Ok(dataOpt.Some);
-    } 
-    ),
+        return dataOpt ? Result.Ok(dataOpt) : Result.Err("Data Item not found");
+    }),
 
     getPurchaser: query([text], Result(Purchaser, text), (name) => {
         const purchaserOpt = purchasersStorage.get(name);
-        if ("None" in purchaserOpt) {
-            return Err("Purchaser not found");
-        }
-        return Ok(purchaserOpt.Some);
-    } 
-    ),
+        return purchaserOpt ? Result.Ok(purchaserOpt) : Result.Err("Purchaser not found");
+    }),
 
-
-    
     addDataItem: update([DataItemPayload], Result(DataItem, Message), (payload) => {
-        if (typeof payload !== "object" || Object.keys(payload).length === 0) {
-            return Err({ NotFound: "invalid payoad" })
-        }
-        const data = { id: uuidv4(), ...payload };
-        DataItemsStorage.insert(data.id, data);
-        return Ok(data);
-    }
-
-    ),
+        const id = uuidv4();
+        const data = { id, ...payload };
+        DataItemsStorage.insert(id, data);
+        return Result.Ok(data);
+    }),
 
     addPurchaser: update([PurchaserPayload], Result(Purchaser, Message), (payload) => {
-        if (typeof payload !== "object" || Object.keys(payload).length === 0) {
-            return Err({ NotFound: "invalid payoad" })
-        }
-        const purchaser = { id: uuidv4(), ...payload , purchasedItem:[]};
-        purchasersStorage.insert(purchaser.id, purchaser);
-        return Ok(purchaser);
-    }
-
-    ),
+        const id = uuidv4();
+        const purchaser = { id, ...payload, purchasedItem: [] };
+        purchasersStorage.insert(id, purchaser);
+        return Result.Ok(purchaser);
+    }),
 
     updateDataItem: update([text, DataItemPayload], Result(DataItem, Message), (id, payload) => {
-        if (typeof payload !== "object" || Object.keys(payload).length === 0) {
-            return Err({ NotFound: "invalid payoad" })
+        const data = DataItemsStorage.get(id);
+        if (!data) {
+            return Result.Err({ NotFound: "Data not found" });
         }
-        const dataOpt = DataItemsStorage.get(id);
-        if ("None" in dataOpt) {
-            return Err({ NotFound: "Data not found" });
-        }
-        const data = dataOpt.Some;
         const updatedData = { ...data, ...payload };
         DataItemsStorage.insert(id, updatedData);
-        return Ok(updatedData);
+        return Result.Ok(updatedData);
     }),
 
     updatePurchaser: update([text, PurchaserPayload], Result(Purchaser, Message), (id, payload) => {
-        if (typeof payload !== "object" || Object.keys(payload).length === 0) {
-            return Err({ NotFound: "invalid payoad" })
+        const purchaser = purchasersStorage.get(id);
+        if (!purchaser) {
+            return Result.Err({ NotFound: "Purchaser not found" });
         }
-        const purchaserOpt = purchasersStorage.get(id);
-        if ("None" in purchaserOpt) {
-            return Err({ NotFound: "Purchaser not found" });
-        }
-        const purchaser = purchaserOpt.Some;
         const updatedPurchaser = { ...purchaser, ...payload };
         purchasersStorage.insert(id, updatedPurchaser);
-        return Ok(updatedPurchaser);
+        return Result.Ok(updatedPurchaser);
     }),
 
-
     deleteDataItem: update([text], Result(text, Message), (id) => {
-        const deletedDataItemOpt = DataItemsStorage.remove(id);
-        if ("None" in deletedDataItemOpt) {
-            return Err({ NotFound: `cannot delete the DataItem: DataItem with id=${id} not found` });
-        }
-        return Ok(deletedDataItemOpt.Some.id);
+        const deletedDataItem = DataItemsStorage.remove(id);
+        return deletedDataItem ? Result.Ok(deletedDataItem.id) : Result.Err({ NotFound: `DataItem with id=${id} not found` });
     }),
 
     deletePurchaser: update([text], Result(text, Message), (id) => {
-        const deletedPurchaserOpt = purchasersStorage.remove(id);
-        if ("None" in deletedPurchaserOpt) {
-            return Err({ NotFound: `cannot delete the Purchaser: Purchaser with id=${id} not found` });
-        }
-        return Ok(deletedPurchaserOpt.Some.id);
+        const deletedPurchaser = purchasersStorage.remove(id);
+        return deletedPurchaser ? Result.Ok(deletedPurchaser.id) : Result.Err({ NotFound: `Purchaser with id=${id} not found` });
     }),
 
-    addPurchasedItem: update([text,text], Result(text, Message), (purchaserId,itemId) => {
-        const purchaserOpt = purchasersStorage.get(purchaserId);
-        if ("None" in purchaserOpt) {
-            return Err({ NotFound: "Purchaser not found" });
+    addPurchasedItem: update([text, text], Result(text, Message), (purchaserId, itemId) => {
+        const purchaser = purchasersStorage.get(purchaserId);
+        if (!purchaser) {
+            return Result.Err({ NotFound: "Purchaser not found" });
         }
-        const purchaser = purchaserOpt.Some;
         purchaser.purchasedItem.push(itemId);
         purchasersStorage.insert(purchaserId, purchaser);
-        return Ok("Item added to Purchaser");
-    } 
-
-    ),
+        return Result.Ok("Item added to Purchaser");
+    }),
 
     searchDataItem: query([text], Vec(DataItem), (query) => {
         const datas = DataItemsStorage.values();
         return datas.filter(datum => datum.title.toLowerCase().includes(query.toLowerCase()) || datum.description.toLowerCase().includes(query.toLowerCase()));
     }),
 
-    // filter by data format
     filterDataItem: query([text], Vec(DataItem), (query) => {
         const datas = DataItemsStorage.values();
         return datas.filter(datum => datum.dataFormat.toLowerCase().includes(query.toLowerCase()));
     }),
 
-    getInitialDataItem: query([], Vec(DataItem), () => {
-        const datas = DataItemsStorage.values();
-        return datas.slice(0, 2);
-    }
-    ),
+    getInitialDataItem: query([], Vec(DataItem), () => DataItemsStorage.values().slice(0, 2)),
 
-     // Load More Data Items
-    getMoreDataItems: query([nat64,nat64], Vec(DataItem), (start, limit) => {
+    getMoreDataItems: query([nat64, nat64], Vec(DataItem), (start, limit) => {
         const datas = DataItemsStorage.values();
-        return datas.slice(Number(start),Number(start + limit));
+        return datas.slice(Number(start), Number(start + limit));
     }),
-
 
 });
 
-
-
-// a workaround to make uuid package work with Azle
+// Polyfill for uuid package
 globalThis.crypto = {
-    // @ts-ignore
     getRandomValues: () => {
         let array = new Uint8Array(32);
-
         for (let i = 0; i < array.length; i++) {
             array[i] = Math.floor(Math.random() * 256);
         }
-
         return array;
     }
 };
-
-
