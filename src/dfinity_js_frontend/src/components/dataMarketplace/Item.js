@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import PropTypes from "prop-types";
 import { Card, Button, Col, Badge, Stack, Row} from "react-bootstrap";
 import { toast } from "react-toastify";
@@ -8,9 +8,12 @@ import DeleteItem from "./DeleteItem";
 import { addPurchasedItem, createPurchaser, deleteDataItem } from "../../utils/dataMarketplace";
 import BuyItem from "./BuyItem";
 
-const Item = ({ item }) => {
+const Item = ({ item, buyItem }) => {
   const { id, title, description,price, seller, attachmentURL, dataFormat, status, quality, rating } =
     item;
+
+  const [sold, setSold] = useState(false);
+  
 
   const discardItem =  () => {
     try {
@@ -22,20 +25,9 @@ const Item = ({ item }) => {
     }
   }
 
-  const buyItem = (data) => {
-    try {
-      // Call the buy function
-      data.price = parseInt(data.price);
-      createPurchaser(data).then((res) => {
-        const idValue = res.Ok.id;
-        addPurchasedItem(idValue, id);
-      } );
-      toast(<NotificationSuccess text="Data Item bought successfully." />);
-      
-    } catch (error) {
-      console.log({error});
-      toast(<NotificationError text="Failed to Buy a Data Item." />);
-    }
+    // Afer Purchase set its Status as Sold 
+  const triggerBuy =  () => {
+    buyItem(id);
   }
 
 
@@ -72,11 +64,20 @@ const Item = ({ item }) => {
                   <Stack direction="horizontal" gap={3}>
                       <UpdateItem itemId={id} />
 
-                      <BuyItem buy={buyItem} sellPrice={price} />
+                      <Button
+                          variant="success"
+                          onClick={ () => {
+                              triggerBuy().then(() => {
+                                setSold(true);
+                              } );
+                          }}
+                          disabled={sold}
+                      >
+                          Buy
+                      </Button>
                       <DeleteItem discard={discardItem} />
                   </Stack>
               </Col>
-
             </Row>
 
 

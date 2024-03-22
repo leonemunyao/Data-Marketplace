@@ -5,6 +5,7 @@ import { Row, Button,InputGroup, Form } from "react-bootstrap";
 
 import { NotificationSuccess, NotificationError } from "../utils/Notifications";
 import {
+  buyDataItem,
   createItem,
   filterDataItems,
   getInitialDataItem,
@@ -114,6 +115,22 @@ const Items = () => {
   };
 
 
+  const buy = async (id) => {
+    try {
+      setLoading(true);
+      await buyDataItem({
+        id
+      }).then((resp) => {
+        getItems();
+        toast(<NotificationSuccess text="Data Item Purchased successfully" />);
+      });
+    } catch (error) {
+      toast(<NotificationError text="Failed to Purchase Data Item." />);
+    } finally {
+      setLoading(false);
+    }
+  };
+
 
 
 
@@ -180,6 +197,7 @@ const Items = () => {
                 item={{
                   ..._dataItem,
                 }}
+                buyItem={buy}
               />
             ))}
 

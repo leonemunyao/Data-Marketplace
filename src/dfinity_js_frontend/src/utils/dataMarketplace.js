@@ -119,5 +119,14 @@ export async function addPurchasedItem(purchaserId, itemId){
 }
 
 
+export async function buyDataItem(item) {
+  const marketplaceCanister = window.canister.dataMarketplace;
+  const orderResponse = await marketplaceCanister.createBuy(item.id);
+  const reservorPrincipal = Principal.from(orderResponse.Ok.reservor);
+  const reservorAddress = await marketplaceCanister.getAddressFromPrincipal(reservorPrincipal);
+  const block = await transferICP(reservorAddress, orderResponse.Ok.price, orderResponse.Ok.memo);
+  await marketplaceCanister.completeBuy(reservorPrincipal, item.id, orderResponse.Ok.price, block, orderResponse.Ok.memo);
+}
+
 
 

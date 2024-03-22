@@ -1,4 +1,5 @@
 service: () -> {
+<<<<<<< HEAD
     addDataItem: (record {attachmentURL:text; status:text; title:text; quality:text; description:text; rating:nat64; price:nat64; dataFormat:text}) -> (variant {Ok:record {id:text; attachmentURL:text; status:text; title:text; quality:text; description:text; seller:principal; rating:nat64; price:nat64; dataFormat:text}; Err:variant {PaymentFailed:text; InvalidPayload:text; NotFound:text; PaymentCompleted:text; AuthenticationFailed:text}});
     addPurchasedItem: (text, text) -> (variant {Ok:text; Err:variant {PaymentFailed:text; InvalidPayload:text; NotFound:text; PaymentCompleted:text; AuthenticationFailed:text}});
     addPurchaser: (record {name:text; message:text; price:nat64}) -> (variant {Ok:record {id:text; owner:principal; name:text; purchasedItem:vec text; message:text; price:nat64}; Err:variant {PaymentFailed:text; InvalidPayload:text; NotFound:text; PaymentCompleted:text; AuthenticationFailed:text}});
@@ -14,4 +15,25 @@ service: () -> {
     searchDataItem: (text) -> (vec record {id:text; attachmentURL:text; status:text; title:text; quality:text; description:text; seller:principal; rating:nat64; price:nat64; dataFormat:text}) query;
     updateDataItem: (text, record {attachmentURL:text; status:text; title:text; quality:text; description:text; rating:nat64; price:nat64; dataFormat:text}) -> (variant {Ok:record {id:text; attachmentURL:text; status:text; title:text; quality:text; description:text; seller:principal; rating:nat64; price:nat64; dataFormat:text}; Err:variant {PaymentFailed:text; InvalidPayload:text; NotFound:text; PaymentCompleted:text; AuthenticationFailed:text}});
     updatePurchaser: (text, record {name:text; message:text; price:nat64}) -> (variant {Ok:record {id:text; owner:principal; name:text; purchasedItem:vec text; message:text; price:nat64}; Err:variant {PaymentFailed:text; InvalidPayload:text; NotFound:text; PaymentCompleted:text; AuthenticationFailed:text}});
+=======
+    addDataItem: (record {attachmentURL:text; status:text; title:text; quality:text; description:text; seller:text; rating:nat64; price:nat64; dataFormat:text}) -> (variant {Ok:record {id:text; attachmentURL:text; status:text; title:text; owner:principal; quality:text; description:text; seller:text; rating:nat64; price:nat64; dataFormat:text}; Err:variant {PaymentFailed:text; InvalidPayload:text; NotFound:text; PaymentCompleted:text}});
+    addPurchasedItem: (text, text) -> (variant {Ok:text; Err:variant {PaymentFailed:text; InvalidPayload:text; NotFound:text; PaymentCompleted:text}});
+    addPurchaser: (record {name:text; message:text; price:nat64}) -> (variant {Ok:record {id:text; name:text; purchasedItem:vec text; message:text; price:nat64}; Err:variant {PaymentFailed:text; InvalidPayload:text; NotFound:text; PaymentCompleted:text}});
+    completeBuy: (principal, text, nat64, nat64, nat64) -> (variant {Ok:record {status:variant {PaymentPending:text; Completed:text}; memo:nat64; reservor:principal; price:nat64; paid_at_block:opt nat64; DataItemId:text}; Err:variant {PaymentFailed:text; InvalidPayload:text; NotFound:text; PaymentCompleted:text}});
+    createBuy: (text) -> (variant {Ok:record {status:variant {PaymentPending:text; Completed:text}; memo:nat64; reservor:principal; price:nat64; paid_at_block:opt nat64; DataItemId:text}; Err:variant {PaymentFailed:text; InvalidPayload:text; NotFound:text; PaymentCompleted:text}});
+    deleteDataItem: (text) -> (variant {Ok:text; Err:variant {PaymentFailed:text; InvalidPayload:text; NotFound:text; PaymentCompleted:text}});
+    deletePurchaser: (text) -> (variant {Ok:text; Err:variant {PaymentFailed:text; InvalidPayload:text; NotFound:text; PaymentCompleted:text}});
+    filterDataItem: (text) -> (vec record {id:text; attachmentURL:text; status:text; title:text; owner:principal; quality:text; description:text; seller:text; rating:nat64; price:nat64; dataFormat:text}) query;
+    getAddressFromPrincipal: (principal) -> (text) query;
+    getDataItem: (text) -> (variant {Ok:record {id:text; attachmentURL:text; status:text; title:text; owner:principal; quality:text; description:text; seller:text; rating:nat64; price:nat64; dataFormat:text}; Err:text}) query;
+    getDataItems: () -> (vec record {id:text; attachmentURL:text; status:text; title:text; owner:principal; quality:text; description:text; seller:text; rating:nat64; price:nat64; dataFormat:text}) query;
+    getInitialDataItem: () -> (vec record {id:text; attachmentURL:text; status:text; title:text; owner:principal; quality:text; description:text; seller:text; rating:nat64; price:nat64; dataFormat:text}) query;
+    getMoreDataItems: (nat64, nat64) -> (vec record {id:text; attachmentURL:text; status:text; title:text; owner:principal; quality:text; description:text; seller:text; rating:nat64; price:nat64; dataFormat:text}) query;
+    getPurchaser: (text) -> (variant {Ok:record {id:text; name:text; purchasedItem:vec text; message:text; price:nat64}; Err:text}) query;
+    getPurchasers: () -> (vec record {id:text; name:text; purchasedItem:vec text; message:text; price:nat64}) query;
+    searchDataItem: (text) -> (vec record {id:text; attachmentURL:text; status:text; title:text; owner:principal; quality:text; description:text; seller:text; rating:nat64; price:nat64; dataFormat:text}) query;
+    updateDataItem: (text, record {attachmentURL:text; status:text; title:text; quality:text; description:text; seller:text; rating:nat64; price:nat64; dataFormat:text}) -> (variant {Ok:record {id:text; attachmentURL:text; status:text; title:text; owner:principal; quality:text; description:text; seller:text; rating:nat64; price:nat64; dataFormat:text}; Err:variant {PaymentFailed:text; InvalidPayload:text; NotFound:text; PaymentCompleted:text}});
+    updatePurchaser: (text, record {name:text; message:text; price:nat64}) -> (variant {Ok:record {id:text; name:text; purchasedItem:vec text; message:text; price:nat64}; Err:variant {PaymentFailed:text; InvalidPayload:text; NotFound:text; PaymentCompleted:text}});
+    verifyPayment: (principal, nat64, nat64, nat64) -> (bool) query;
+>>>>>>> 91f710d4e1dad40d97a565322e2c8cb47906c8c9
 }
