@@ -12,7 +12,6 @@ import { v4 as uuidv4 } from "uuid";
 const DataItem = Record({
     id: text,
     title: text,
-    owner: Principal,
     description: text,
     price: nat64,
     seller: Principal,
@@ -38,27 +37,11 @@ const PurchaserPayload = Record({
     message:text,
 });
 
-const ReserveStatus = Variant({
-    PaymentPending: text,
-    Completed: text
-});
-
-
-const Reserve = Record({
-    DataItemId: text,
-    price: nat64,
-    status: ReserveStatus,
-    reservor: Principal,
-    paid_at_block: Opt(nat64),
-    memo: nat64
-});
-
 
 const DataItemPayload = Record({
     title: text,
     description: text,
     price: nat64,
-    seller: Principal,
     attachmentURL: text,
     dataFormat: text,
     status:text,
@@ -77,10 +60,6 @@ const Message = Variant({
 
 const DataItemsStorage = StableBTreeMap(0, text, DataItem);
 const purchasersStorage = StableBTreeMap(1, text , Purchaser)
-const persistedBuy = StableBTreeMap(2, Principal, Reserve);
-const pendingBuy = StableBTreeMap(3, nat64, Reserve);
-
-const TIMEOUT_PERIOD = 3600n; // reservation period in seconds
 
 
 
@@ -117,9 +96,6 @@ function validateDataItemPayload(payload: typeof DataItemPayload): Vec<string>{
     }
     if (payload.price == BigInt(0)){
         errors.push(`price='${payload.price}' must be greater than zero.`)
-    }
-    if(payload.seller.toString() !== ic.caller().toString()){
-        errors.push(`seller='${payload.seller}' needs to be the current caller.`)
     }
     return errors;
   }
@@ -193,7 +169,7 @@ export default Canister({
         if (validatePayloadErrors.length){
             return Err({InvalidPayload: `Invalid payload. Errors=[${validatePayloadErrors}]`});
         }
-        const data = { id: uuidv4(),owner: ic.caller(), ...payload };
+        const data = { id: uuidv4(), seller: ic.caller(), ...payload };
         DataItemsStorage.insert(data.id, data);
         return Ok(data);
     }
@@ -339,72 +315,10 @@ export default Canister({
         return datas.slice(Number(start),Number(start + limit));
     }),
 
-    createBuy: update([text], Result(Reserve, Message), (dataItemId) => {
-        const dataOpt = DataItemsStorage.get(dataItemId);
-        if ("None" in dataOpt) {
-            return Err({ NotFound: `cannot reserve Data Item: Data Item with id=${dataItemId} not found` });
-        }
-        const data = dataOpt.Some;
-        const reserve = {
-            DataItemId: data.id,
-            price: data.price,
-            status: { PaymentPending: "PAYMENT_PENDING" },
-            reservor: data.owner,
-            paid_at_block: None,
-            memo: generateCorrelationId(dataItemId)
-        };
-        pendingBuy.insert(reserve.memo, reserve);
-        discardByTimeout(reserve.memo, TIMEOUT_PERIOD);
-        return Ok(reserve);
-    }
-    ),
-
-    completeBuy: update([Principal,text,nat64, nat64, nat64], Result(Reserve, Message), async (reservor,dataItemId,buyPrice, block, memo) => {
-        const paymentVerified = await verifyPaymentInternal(reservor,buyPrice, block, memo);
-        if (!paymentVerified) {
-            return Err({ NotFound: `cannot complete the reserve: cannot verify the payment, memo=${memo}` });
-        }
-        const pendingBuyOpt = pendingBuy.remove(memo);
-        if ("None" in pendingBuyOpt) {
-            return Err({ NotFound: `cannot complete the reserve: there is no pending reserve with id=${dataItemId}` });
-        }
-        const buy = pendingBuyOpt.Some;
-        const updatedBuy = { ...buy, status: { Completed: "COMPLETED" }, paid_at_block: Some(block) };
-        const dataItemOpt = DataItemsStorage.get(dataItemId);
-        if ("None" in dataItemOpt){
-            throw Error(`Data Item with id=${dataItemId} not found`)
-        }
-        const dataItem = dataItemOpt.Some;
-        dataItem.status = "Sold";
-        DataItemsStorage.insert(dataItem.id,dataItem)
-        persistedBuy.insert(ic.caller(), updatedBuy);
-        return Ok(updatedBuy);
-
-    }
-    ),
-
-    verifyPayment: query([Principal, nat64, nat64, nat64], bool, async (receiver, amount, block, memo) => {
-        return await verifyPaymentInternal(receiver, amount, block, memo);
-    }),
-
-    /*
-        a helper function to get address from the principal
-        the address is later used in the transfer method
-    */
-    getAddressFromPrincipal: query([Principal], text, (principal) => {
-        return hexAddressFromPrincipal(principal, 0);
-    }),
-
 
 });
 
-/*
-    a hash function that is used to generate correlation ids for orders.
-    also, we use that in the verifyPayment function where we check if the used has actually paid the order
-*/
-function hash(input: any): nat64 {
-    return BigInt(Math.abs(hashCode().value(input)));
-};
+
 
 // a workaround to make uuid package work with Azle
 globalThis.crypto = {
@@ -420,38 +334,4 @@ globalThis.crypto = {
     }
 };
 
-
-// HELPER FUNCTIONS
-function generateCorrelationId(dataItemId: text): nat64 {
-    const correlationId = `${dataItemId}_${ic.caller().toText()}_${ic.time()}`;
-    return hash(correlationId);
-};
-
-/*
-    after the order is created, we give the `delay` amount of minutes to pay for the order.
-    if it's not paid during this timeframe, the order is automatically removed from the pending orders.
-*/
-function discardByTimeout(memo: nat64, delay: Duration) {
-    ic.setTimer(delay, () => {
-        const order = pendingBuy.remove(memo);
-        console.log(`Reserve discarded ${order}`);
-    });
-};
-
-async function verifyPaymentInternal(receiver: Principal, amount: nat64, block: nat64, memo: nat64): Promise<bool> {
-    const blockData = await ic.call(icpCanister.query_blocks, { args: [{ start: block, length: 1n }] });
-    const tx = blockData.blocks.find((block) => {
-        if ("None" in block.transaction.operation) {
-            return false;
-        }
-        const operation = block.transaction.operation.Some;
-        const senderAddress = binaryAddressFromPrincipal(ic.caller(), 0);
-        const receiverAddress = binaryAddressFromPrincipal(receiver, 0);
-        return block.transaction.memo === memo &&
-            hash(senderAddress) === hash(operation.Transfer?.from) &&
-            hash(receiverAddress) === hash(operation.Transfer?.to) &&
-            amount === operation.Transfer?.amount.e8s;
-    });
-    return tx ? true : false;
-};
 
