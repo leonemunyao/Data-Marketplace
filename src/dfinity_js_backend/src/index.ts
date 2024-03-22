@@ -42,7 +42,6 @@ const DataItemPayload = Record({
     title: text,
     description: text,
     price: nat64,
-    seller: Principal,
     attachmentURL: text,
     dataFormat: text,
     status:text,
@@ -97,9 +96,6 @@ function validateDataItemPayload(payload: typeof DataItemPayload): Vec<string>{
     }
     if (payload.price == BigInt(0)){
         errors.push(`price='${payload.price}' must be greater than zero.`)
-    }
-    if(payload.seller.toString() !== ic.caller().toString()){
-        errors.push(`seller='${payload.seller}' needs to be the current caller.`)
     }
     return errors;
   }
@@ -173,7 +169,7 @@ export default Canister({
         if (validatePayloadErrors.length){
             return Err({InvalidPayload: `Invalid payload. Errors=[${validatePayloadErrors}]`});
         }
-        const data = { id: uuidv4(), ...payload };
+        const data = { id: uuidv4(), seller: ic.caller(), ...payload };
         DataItemsStorage.insert(data.id, data);
         return Ok(data);
     }

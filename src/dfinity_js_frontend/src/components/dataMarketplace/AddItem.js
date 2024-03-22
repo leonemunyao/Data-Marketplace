@@ -7,13 +7,12 @@ const AddItem = ({ save }) => {
   const [attachmentURL, setImage] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState(0);
-  const [seller, setSeller] = useState("");
   const [dataFormat, setDataFormat] = useState("");
   const [status, setStatus] = useState("");
   const [quality, setQuality] = useState("");
   const [rating, setRating] = useState(0);
 
-  const isFormFilled = () => title && attachmentURL && description  && price && seller && dataFormat && status && quality && rating;
+  const isFormFilled = () => title && attachmentURL && description  && price && dataFormat && status && quality && rating;
 
   const [show, setShow] = useState(false);
 
@@ -77,16 +76,6 @@ const AddItem = ({ save }) => {
                 />
               </FloatingLabel>
             </Form.Group>
-            <Form.Group className="mb-3" controlId="seller">
-              <FloatingLabel controlId="seller" label="Seller">
-                <Form.Control
-                  type="text"
-                  placeholder="Seller"
-                  value={seller}
-                  onChange={(e) => setSeller(e.target.value)}
-                />
-              </FloatingLabel>
-            </Form.Group>
             <Form.Group className="mb-3" controlId="dataFormat">
               <FloatingLabel controlId="dataFormat" label="Data Format">
                 <Form.Control
@@ -142,7 +131,6 @@ const AddItem = ({ save }) => {
                 attachmentURL,
                 description,
                 price,
-                seller,
                 dataFormat,
                 status,
                 quality,

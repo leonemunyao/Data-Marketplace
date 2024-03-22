@@ -53,7 +53,7 @@ const Item = ({ item }) => {
             <p>Price: </p>
             <Badge bg="primary"> {price.toString()} ICP</Badge>
             <p>Seller: </p>
-            <Badge bg="secondary">{seller}</Badge>
+            <Badge bg="secondary">{seller.toString()}</Badge>
           </Stack>
           <Stack direction="horizontal" gap={3}>
             <p>Data Format: </p>
